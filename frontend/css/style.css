@@ -1,4 +1,3 @@
-/* ---------- 기존 스타일 유지 ---------- */
 html, body { height: 100%; margin: 0; overflow: hidden; }
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', Arial, sans-serif;
@@ -127,7 +126,6 @@ body {
 .station-root-dot--board { border-color: var(--color-brand-primary); }
 .station-root-dot--drop { border-color: var(--color-brand-danger); }
 
-/* colorForTime/colorForEff, 범례 스와치가 공유하는 6단계 스케일 */
 .dot--1 { background: var(--color-scale-1); }
 .dot--2 { background: var(--color-scale-2); }
 .dot--3 { background: var(--color-scale-3); }
