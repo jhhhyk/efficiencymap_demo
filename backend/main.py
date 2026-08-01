@@ -1,5 +1,6 @@
 # backend/main.py
 import os
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
@@ -24,14 +25,40 @@ if not ODSAY_KEY:
 
 app = FastAPI()
 
-# [수정됨] CORS 설정 확실하게 적용
+# CORS 허용 origin — 나중에 수정하기 쉽도록 상수로 분리
+ALLOWED_ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "https://YOUR-ID.github.io",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 모든 주소 허용
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ----- 경로 캐시 (OrderedDict 기반 LRU, 최대 500개) -----
+
+ROUTE_CACHE: "OrderedDict[str, Dict[str, Any]]" = OrderedDict()
+ROUTE_CACHE_MAX = 500
+
+def route_cache_get(key: str) -> Optional[Dict[str, Any]]:
+    if key in ROUTE_CACHE:
+        ROUTE_CACHE.move_to_end(key)
+        print(f"[cache] HIT {key}")
+        return ROUTE_CACHE[key]
+    print(f"[cache] MISS {key}")
+    return None
+
+def route_cache_set(key: str, value: Dict[str, Any]) -> None:
+    ROUTE_CACHE[key] = value
+    ROUTE_CACHE.move_to_end(key)
+    if len(ROUTE_CACHE) > ROUTE_CACHE_MAX:
+        evicted_key, _ = ROUTE_CACHE.popitem(last=False)
+        print(f"[cache] EVICT {evicted_key}")
 
 # ----- ODsay 공통 호출 -----
 
@@ -222,10 +249,10 @@ def get_map_obj(
     ride: str,
     board: str,
     drop: str,
-) -> str:
+) -> Tuple[str, Dict[str, Any]]:
     """
     searchPubTransPathT 로 길찾기 호출 후
-    ride/board/drop에 맞는 path를 골라 mapObj 반환.
+    ride/board/drop에 맞는 path를 골라 (mapObj, 선택된 path) 반환.
     """
     data = odsay_get(
         "searchPubTransPathT",
@@ -244,7 +271,7 @@ def get_map_obj(
     map_obj = info.get("mapObj")
     if not map_obj:
         raise HTTPException(status_code=500, detail="선택한 경로에 mapObj 가 없습니다.")
-    return map_obj
+    return map_obj, path
 
 def get_lane_graph(map_obj: str) -> Dict[str, Any]:
     """
@@ -259,7 +286,47 @@ def get_lane_graph(map_obj: str) -> Dict[str, Any]:
     )
     return data
 
+def extract_stations(
+    path: Dict[str, Any],
+    first_last_only: bool = True,
+) -> List[Dict[str, Any]]:
+    """
+    선택된 path의 subPath[].passStopList.stations[] 에서 정류장 좌표 추출.
+    지하철/버스(trafficType 1, 2) 구간만 대상으로 함.
+    first_last_only=True(기본값)면 각 구간의 첫/마지막 정류장만 반환 —
+    정류장이 너무 많아 지도가 복잡해지는 것을 막기 위함.
+    """
+    out = []
+    for sp in path.get("subPath", []) or []:
+        if sp.get("trafficType") not in (1, 2):
+            continue
+        pass_list = sp.get("passStopList") or {}
+        stations = pass_list.get("stations", []) or pass_list.get("station", []) or []
+        if not stations:
+            continue
+
+        selected = stations
+        if first_last_only and len(stations) > 1:
+            selected = [stations[0], stations[-1]]
+        elif first_last_only:
+            selected = [stations[0]]
+
+        for st in selected:
+            try:
+                out.append({
+                    "x": float(st["x"]),
+                    "y": float(st["y"]),
+                    "stationName": st.get("stationName", ""),
+                })
+            except (KeyError, TypeError, ValueError):
+                continue
+    return out
+
 # ----- API 엔드포인트 -----
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.get("/api/route")
 def get_route(
@@ -268,13 +335,25 @@ def get_route(
     ride: str = Query("", description="CSV ride (버스/지하철 노선명)"),
     board: str = Query("", description="CSV board (탑승 정류장 이름)"),
     drop: str = Query("", description="CSV drop (하차 정류장 이름)"),
+    full_stations: bool = Query(False, description="True면 구간의 모든 정류장, False(기본)면 구간별 첫/마지막 정류장만"),
 ):
     """
     클릭한 점(from_lat, from_lng) -> 연세대 도서관까지의
     대중교통 경로를 ODsay에 요청하고,
-    loadLane 결과(정밀한 노선 그래픽 데이터)를 그대로 반환.
+    loadLane 결과(정밀한 노선 그래픽 데이터)에 정류장 좌표(stations)를 덧붙여 반환.
     ride/board/drop 정보를 이용해 가능한 한 CSV와 같은 노선을 선택함.
     """
-    map_obj = get_map_obj(from_lat, from_lng, ride, board, drop)
+    cache_key = f"{from_lat:.5f},{from_lng:.5f},{ride},{full_stations}"
+    cached = route_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    map_obj, selected_path = get_map_obj(from_lat, from_lng, ride, board, drop)
     lane_data = get_lane_graph(map_obj)
+    stations = extract_stations(selected_path, first_last_only=not full_stations)
+
+    if isinstance(lane_data, dict):
+        lane_data["stations"] = stations
+
+    route_cache_set(cache_key, lane_data)
     return lane_data
