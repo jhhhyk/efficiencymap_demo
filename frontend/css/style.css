@@ -11,6 +11,16 @@ body {
 
 #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin-top: 0; z-index: 0; }
 
+.backend-offline-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  background: var(--color-scale-4); color: var(--color-neutral-0);
+  padding: var(--space-8) var(--space-16); font-size: 13px; text-align: center;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  box-shadow: var(--shadow-card);
+}
+.backend-offline-banner strong { font-weight: 700; }
+.backend-offline-banner span { color: var(--color-neutral-200); font-weight: 400; }
+
 #sidebar {
   position: fixed; z-index: 20; background: var(--color-neutral-0); box-shadow: var(--shadow-sidebar);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);

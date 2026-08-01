@@ -1,12 +1,24 @@
 // ---------- 1. 기본 설정 ----------
 const DEST = { lat: 37.563729, lng: 126.936898 };
 
-const API_BASE = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000'
-  : 'https://YOUR-APP.onrender.com';
+// ODsay가 IP 화이트리스트로 서버를 제한해서 Render 등 원격 배포에서 호출 불가 —
+// 배포 환경에서도 항상 사용자의 로컬 백엔드를 바라봄
+const API_BASE = 'http://localhost:8000';
 
-// 콜드스타트 방지 — 페이지 로드 즉시 서버 깨우기
-fetch(`${API_BASE}/health`).catch(() => {});
+function showBackendOfflineBanner() {
+  const banner = document.createElement('div');
+  banner.className = 'backend-offline-banner';
+  banner.innerHTML = `
+    <strong>경로 조회 기능은 로컬 백엔드 실행이 필요합니다.</strong>
+    <span>지도·필터·토글은 백엔드 없이도 정상 동작합니다.</span>
+  `;
+  document.body.appendChild(banner);
+}
+
+// 로컬 백엔드 상태 확인 — 응답이 없으면 안내 배너 표시
+fetch(`${API_BASE}/health`)
+  .then(res => { if (!res.ok) throw new Error('unhealthy'); })
+  .catch(() => showBackendOfflineBanner());
 
 const DATA_URL = "data/data.json";
 
