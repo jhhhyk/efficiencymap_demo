@@ -2,14 +2,14 @@
 const DEST = { lat: 37.563729, lng: 126.936898 };
 
 // ODsay가 IP 화이트리스트로 서버를 제한해서 Render 등 원격 배포에서 호출 불가 —
-// 배포 환경에서도 항상 사용자의 로컬 백엔드를 바라봄
-const API_BASE = 'http://localhost:8000';
+// 고정 IP를 화이트리스트에 등록해둔 백엔드(duckdns 도메인)를 바라봄
+const API_BASE = 'https://efficiencymap.duckdns.org';
 
 function showBackendOfflineBanner() {
   const banner = document.createElement('div');
   banner.className = 'backend-offline-banner';
   banner.innerHTML = `
-    <strong>경로 조회 기능은 로컬 백엔드 실행이 필요합니다.</strong>
+    <strong>경로 조회 기능을 사용할 수 없습니다 (백엔드 서버에 연결할 수 없음).</strong>
     <span>지도·필터·토글은 백엔드 없이도 정상 동작합니다.</span>
   `;
   document.body.appendChild(banner);

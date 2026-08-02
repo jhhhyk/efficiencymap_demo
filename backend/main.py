@@ -29,7 +29,7 @@ app = FastAPI()
 ALLOWED_ORIGINS = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "https://YOUR-ID.github.io",
+    "https://jhhhyk.github.io",
 ]
 
 app.add_middleware(
