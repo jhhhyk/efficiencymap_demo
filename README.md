@@ -2,7 +2,7 @@
 
 통학 시간과 임대료를 하나의 지표로 통합해, 연세대학교 인근 전월세 매물의 주거 효율을 지도 위에서 한눈에 비교할 수 있는 웹 애플리케이션입니다.
 
-**[데모 보기](https://jhhhyk.github.io/-efficiencymap_demo/)**
+**[데모 보기](https://jhhhyk.github.io/efficiencymap_demo/)**
 
 ---
 
