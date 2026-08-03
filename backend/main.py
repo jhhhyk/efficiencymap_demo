@@ -77,11 +77,16 @@ def odsay_get(endpoint: str, params: Dict[str, Any]) -> Dict[str, Any]:
     merged.update(params or {})
 
     try:
-        with httpx.Client(timeout=15.0) as client:
+        with httpx.Client(timeout=8.0) as client:  # 15초 → 8초로 단축 (빨리 포기하고 재시도)
             resp = client.get(url, params=merged)
             resp.raise_for_status()
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"ODSAY HTTP error: {e}")
+    except httpx.HTTPError:
+        try:  # 한 번 더 시도
+            with httpx.Client(timeout=8.0) as client:
+                resp = client.get(url, params=merged)
+                resp.raise_for_status()
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"ODSAY HTTP error: {e}")
 
     try:
         data = resp.json()
