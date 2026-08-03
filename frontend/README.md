@@ -2,6 +2,12 @@
 
 매물 5,073건을 지도 위에 시각화하고, 소요시간·효율 기준으로 탐색할 수 있는 정적 웹 애플리케이션입니다.
 
+**[데모 보기](https://jhhhyk.github.io/efficiencymap_demo/)**
+
+> ⚠️ 백엔드 서버가 불안정하여 경로 조회 등 일부 기능이 정상적으로 동작하지 않을 수 있습니다.
+
+**[Figma 작업물 보기](https://www.figma.com/design/Dwg1x9OSUPaqZyProRfH9R/%EC%A2%85%ED%95%A9%EC%84%A4%EA%B3%84--%EB%B3%B5%EC%82%AC-?m=auto&t=yYmyNTwiNGQx0RgV-1)**
+
 ---
 
 ## 목차
